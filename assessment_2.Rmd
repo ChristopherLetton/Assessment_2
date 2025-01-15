@@ -1,0 +1,558 @@
+---
+title: "Analytical Second Assessment"
+output: html_document
+date: "2024-12-16"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Installing packages
+
+install.packages("BiocManager")
+install.packages("forcats")
+install.packages("stringr")
+install.packages("ggplot2")
+install.packages("ggrepel")
+install.packages("readr")
+install.packages("tidyr")
+install.packages("survminer")
+BiocManager::install("GEOquery")
+BiocManager::install("limma")
+BiocManager::install("pheatmap")
+BiocManager::install("org.Hs.eg.db")a
+
+already installed so should run now ^^^
+
+
+Testing first using the practical information to conduct the work. 
+```{r}
+
+```
+
+
+```{r}
+getwd()
+setwd("C:/Users/chris/OneDrive - University of Leeds/Modules/BIOL5327M Anlytl Skills in Precision Med (39553)/Assessment 2")
+```
+
+set the first object in the list and gse now is an expressionSet.
+```{r}
+###https://sbc.shef.ac.uk/geo_tutorial/tutorial.nb.html#Introduction
+#----import the data------------------------------------
+library(GEOquery)
+my_id <- "GSE22470"
+gse <- getGEO(my_id)
+```
+
+Shows that the all data was taken from the same platform. You can see that it contains assayData, phenoData, feature etc.
+```{r}
+## check how many platforms used
+length(gse)
+gse <-gse[[1]]
+gse
+
+# careful re-runing this code multple times. It will keep reassigning at raking 1 column from the data!
+```
+Look at the sample information, gene annotation, and the expression data. This allow us to have a rough idea of the information storing in this expressionSet.
+
+```{r}
+pData(gse)[1:400,] ## print the sample information
+```
+
+```{r}
+fData(gse)[1,] ## print the gene annotation
+```
+```{r}
+exprs(gse)[1,] ## print the expression data
+```
+
+
+```{r}
+pData(gse)$data_processing[1]
+# For visualisation and statistical analysis, we will inspect the data to 
+# discover what scale the data are presented in. The methods we will use assume 
+# the data are on a log2 scale; typically in the range of 0 to 16.
+```
+
+The scale of the data seems suitable.
+```{r}
+## have a look on the expression value
+# For visualisation and statistical analysis, we will inspect the data to 
+# discover what scale the data are presented in. The methods we will use assume 
+# the data are on a log2 scale; typically in the range of 0 to 16.
+summary(exprs(gse))
+
+```
+Check I do in fact have the mean, 3rd quatrile and max values.I do. Can continue. 
+```{r}
+selected_samples <- exprs(gse)[, 1:15]
+summary(selected_samples)
+```
+
+Shows that all the samples have values in the range of 0 and 16. Check the summary of expression level again. And draw a boxplot. We can see that the distributions of each sample are highly similar, which means the data have been normalised. Can proceed.
+```{r}
+boxplot(exprs(gse),outline=F)
+```
+INSPECT THE CLIJICAL VARIABLES
+```{r}
+library(dplyr)
+```
+
+```{r}
+sampleInfo <- pData(gse)
+head(sampleInfo)
+```
+```{r}
+table(sampleInfo$characteristics_ch1.1)
+```
+Going to try and see if the tumour type shows some separation (A main priciple component)
+```{r}
+sampleInfo2 <- pData(gse)
+table(sampleInfo2$characteristics_ch1.2)
+```
+
+```{r}
+# Pick just those columns that seem to contain factors we might 
+# need for the analysis.
+sampleInfo <- select(sampleInfo, characteristics_ch1.1)
+
+## Optionally, rename to more convenient column names
+sampleInfo <- rename(sampleInfo, group = characteristics_ch1.1)
+
+head(sampleInfo)
+```
+2
+```{r}
+# Pick just those columns that seem to contain factors we might 
+# need for the analysis.
+sampleInfo2 <- select(sampleInfo2, characteristics_ch1.2)
+
+## Optionally, rename to more convenient column names
+sampleInfo2 <- rename(sampleInfo2, group = characteristics_ch1.2)
+
+head(sampleInfo2)
+```
+
+
+```{r}
+dim(sampleInfo)
+
+```
+```{r}
+sampleInfo$group
+```
+
+```{r}
+# Extract ages safely and handle NA values
+sampleInfo$group <- ifelse(
+  is.na(sampleInfo$group), 
+  1, 
+  ifelse(
+    grepl("age: \\d+", sampleInfo$group),  # Check if age pattern exists
+    ifelse(as.numeric(sub(".*age: (\\d+)", "\\1", sampleInfo$group)) > 25, 1, 0),
+    1  # Default to 1 if age is missing
+  )
+)
+```
+
+```{r}
+# View result
+print(sampleInfo)
+```
+
+2nd PCA
+```{r}
+sampleInfo2 <- sampleInfo2 %>%
+  mutate(group = case_when(
+    grepl("ABC", group) ~ "0",
+    grepl("GCB", group) ~ "1",
+    grepl("unclassified", group) ~ ".",
+    TRUE ~ group  # In case there are other unexpected values
+  ))
+```
+
+```{r}
+print(sampleInfo2)
+```
+
+
+
+
+
+
+
+Sample clustering and Principal Components Analaysis
+
+```{r}
+library(pheatmap)
+## argument use="c" stops an error if there are any missing data points
+
+corMatrix <- cor(exprs(gse),use="c")
+pheatmap(corMatrix)   
+```
+```{r}
+## Print the rownames of the sample information and check it matches the correlation matrix
+
+rownames(sampleInfo)
+```
+```{r}
+colnames(corMatrix)
+```
+
+```{r}
+#make PCA
+library(ggplot2)
+library(ggrepel)
+## MAKE SURE TO TRANSPOSE THE EXPRESSION MATRIX
+
+pca <- prcomp(t(exprs(gse)))
+
+## Join the PCs to the sample information
+cbind(sampleInfo, pca$x) %>% 
+  ggplot(aes(x = PC1, y=PC2, col=group, label=paste("",group))) + geom_point() + geom_text_repel()
+```
+Not sure what this is actually showing...The PCA is done on age (0,1) not sur ehat the PCA compents are. 
+
+```{r}
+# Perform PCA
+pca <- prcomp(t(exprs(gse)))
+
+# Join the PCs to the sample information and create the PCA plot
+cbind(sampleInfo, pca$x) %>%
+  # Convert 'group' to a factor (if not already)
+  mutate(group = factor(group, levels = c(0, 1))) %>%
+  ggplot(aes(x = PC1, y = PC2, col = group)) +
+  geom_point(size = 3) +                # Adjust point size for better visibility
+  scale_color_manual(
+    values = c("0" = "black", "1" = "blue"),  # Define colors for 0 and 1
+    name = "Ages",                         # Legend title
+    labels = c("0" = "≤25", "1" = ">25")  # Legend labels
+  ) +
+  theme_minimal() +                         # Use a clean theme
+  theme(legend.position = "right")          # Place the legend on the side
+
+```
+```{r}
+# Perform PCA
+pca <- prcomp(t(exprs(gse)))
+
+# Join the PCs to the sample information and create the PCA plot
+cbind(sampleInfo, pca$x) %>%
+  # Convert 'group' to a factor (if not already)
+  mutate(group = factor(group, levels = c(0, 1))) %>%
+  ggplot(aes(x = PC1, y = PC2, col = group)) +
+  geom_point(size = 3) +                # Adjust point size for better visibility
+  scale_color_manual(
+    values = c("0" = "black", "1" = "blue"),  # Define colors for 0 and 1
+    name = "Ages",                         # Legend title
+    labels = c("0" = "≤25", "1" = ">25")  # Legend labels
+  ) +
+  theme_minimal() +                         # Use a clean theme
+  theme(
+    legend.position = "right",             # Place the legend on the side
+    panel.grid = element_blank(),          # Remove all grid lines
+    axis.line = element_line(color = "black")  # Keep axis lines visible
+  )
+
+```
+
+
+It's just showing the main source of variation within my data set. There does not seem to be clear seaparion based on the age groups that I chose. For example, if gene expression patterns or another feature vary significantly between young and old individuals, PC1 could reflect this. For example, PC2 could highlight variations that might be due to other factors like environmental influences, biological variability, or specific characteristics within the young or old groups.
+
+When investigatin git's worth noting that ages may not be the culprit for the differential expression it could be due to something else. Going forward with the diferential expression seen betwe nthe 2 groups though. 
+
+```{r}
+# Perform PCA
+pca <- prcomp(t(exprs(gse)))
+
+# Calculate the proportion of variance explained
+explained_variance <- summary(pca)$importance[2, ]  # Extract the second row (Proportion of Variance)
+pc1_variance <- explained_variance[1] * 100  # Variance for PC1 in percentage
+pc2_variance <- explained_variance[2] * 100  # Variance for PC2 in percentage
+
+# Print variance explained by PC1 and PC2
+cat("Variance explained by PC1:", round(pc1_variance, 2), "%\n")
+cat("Variance explained by PC2:", round(pc2_variance, 2), "%\n")
+
+# Join the PCs to the sample information and create the PCA plot
+cbind(sampleInfo, pca$x) %>%
+  # Convert 'group' to a factor (if not already)
+  mutate(group = factor(group, levels = c(0, 1))) %>%
+  ggplot(aes(x = PC1, y = PC2, col = group)) +
+  geom_point(size = 3) +                # Adjust point size for better visibility
+  scale_color_manual(
+    values = c("0" = "black", "1" = "blue"),  # Define colors for 0 and 1
+    name = "Ages",                         # Legend title
+    labels = c("0" = "≤25", "1" = ">25")  # Legend labels
+  ) +
+  labs(
+    x = paste0("PC1 (", round(pc1_variance, 2), "%)"),  # Add variance to x-axis label
+    y = paste0("PC2 (", round(pc2_variance, 2), "%)")   # Add variance to y-axis label
+  ) +
+  theme_minimal() +                         # Use a clean theme
+  theme(legend.position = "right")          # Place the legend on the side
+
+```
+
+
+
+
+
+```{r}
+# Perform PCA
+pca <- prcomp(t(exprs(gse)))
+
+# Join the PCs to the sample information and create the PCA plot
+cbind(sampleInfo, pca$x) %>%
+  # Convert 'group' to a factor (if not already)
+  mutate(group = factor(group, levels = c(0, 1))) %>%
+  ggplot(aes(x = PC1, y = PC2, col = group)) +
+  geom_point(size = 3) +                # Adjust point size for better visibility
+  scale_color_manual(
+    values = c("0" = "black", "1" = "blue"),  # Define colors for 0 and 1
+    name = "Ages",                         # Legend title
+    labels = c("0" = "Under 25", "1" = "Over 25")  # Legend labels
+  ) +
+  theme_minimal() +                         # Use a clean theme
+  theme(legend.position = "right")          # Place the legend on the side
+```
+
+
+
+
+
+
+
+
+
+
+
+
+PCA2
+```{r}
+## MAKE SURE TO TRANSPOSE THE EXPRESSION MATRIX
+
+pca2 <- prcomp(t(exprs(gse)))
+
+## Join the PCs to the sample information
+cbind(sampleInfo2, pca$x) %>% 
+  ggplot(aes(x = PC1, y=PC2, col=group, label=paste("",group))) + geom_point() + geom_text_repel()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+Differential expression analysis
+
+```{r}
+library(limma)
+```
+
+```{r}
+# Here, we assume 'group' is a factor with two levels: 0 (young) and 1 (old)
+sampleInfo$group <- factor(sampleInfo$group, levels = c(0, 1))  # Ensure group is a factor
+```
+
+```{r}
+design <- model.matrix(~0 + sampleInfo$group)
+design
+```
+
+
+```{r}
+colnames(design) <- c("young","old")
+
+design
+```
+
+```{r}
+## calculate median expression level
+cutoff <- median(exprs(gse))
+
+## TRUE or FALSE for whether each gene is "expressed" in each sample
+is_expressed <- exprs(gse) > cutoff
+
+## Identify genes expressed in more than 2 samples
+
+keep <- rowSums(is_expressed) > 3
+
+## check how many genes are removed / retained.
+table(keep)
+```
+
+```{r}
+## subset to just those expressed genes
+gse <- gse[keep,]
+```
+
+```{r}
+# coping with outliers
+## calculate relative array weights
+aw <- arrayWeights(exprs(gse),design)
+aw
+```
+
+```{r}
+## Fitting the coefficients
+fit <- lmFit(exprs(gse), design,
+             weights = aw)
+
+head(fit$coefficients)
+```
+
+```{r}
+## Making comparisons between samples, can define multiple contrasts
+contrasts <- makeContrasts(old - young, levels = design)
+
+fit2 <- contrasts.fit(fit, contrasts)
+fit2 <- eBayes(fit2)
+
+
+topTable(fit2)
+```
+
+Tell how many are significant. Only dow nreg in old. Which means we actuallu have 15 upregulated in young. All others aren't siginicant. Should be able to look at these and see affects and suggest papers.
+```{r}
+topTable1 <- topTable(fit2, coef=1)
+
+#if we want to know how many genes are differentially expressed overall, we can use the decideTest function.
+summary(decideTests(fit2))
+```
+
+Further visualization with gene annotation
+```{r}
+anno <- fData(gse)
+head(anno)
+```
+
+```{r}
+anno <- select(anno,Gene = `Gene Symbol`,ID,GB_ACC)
+fit2$genes <- anno
+
+topTable(fit2)
+```
+```{r}
+#setwd("C:/Users/chris/OneDrive - University of Leeds/Modules/BIOL5327M Anlytl Skills in Precision Med (39553)/Assessment 2")
+
+#Top_10_genes <- topTable(fit2)
+#write.csv(Top_10_genes, "Top_10_genes_limma.csv")
+```
+
+
+```{r}
+## Create volcano plot
+full_results1 <- topTable(fit2, coef=1, number=Inf)
+library(ggplot2)
+ggplot(full_results1,aes(x = logFC, y=B)) + geom_point()
+```
+```{r}
+## change according to your needs
+adj.P.Val_cutoff <- 0.05
+fc_cutoff <- 1
+
+
+full_results1 %>% 
+  mutate(Significant = adj.P.Val < adj.P.Val_cutoff, abs(logFC) > fc_cutoff ) %>% 
+  ggplot(aes(x = logFC, y = B, col=Significant)) + geom_point()
+```
+
+```{r}
+library(ggrepel)
+p_cutoff <- 0.05
+fc_cutoff <- 1
+topN <- 10
+
+full_results1 %>% 
+  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
+  mutate(Rank = 1:n(), Label = ifelse(Rank < topN, Gene,"")) %>% 
+  ggplot(aes(x = logFC, y = B, col=Significant,label=Label)) + geom_point() + geom_text_repel(col="black")
+```
+```{r}
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+
+# Cutoffs
+p_cutoff <- 0.05
+fc_cutoff <- 1
+topN <- 15
+
+# Filter and plot
+full_results1 %>% 
+  mutate(Significant = adj.P.Val < p_cutoff, abs(logFC) > fc_cutoff ) %>% 
+  mutate(Rank = 1:n(), Label = ifelse(Rank < topN, Gene,"")) %>% 
+  ggplot(aes(x = logFC, y = B, col = Significant, label = Label)) + 
+  geom_point() + 
+  geom_text_repel(aes(label = Label), 
+                  col = "black", 
+                  size = 3, # Adjust text size
+                  max.overlaps = 10) + # Limit overlap handling
+  labs(title = "Top 15 Significant Genes",
+       x = "Log Fold Change (logFC)",
+       y = "B Statistic") +
+  theme_minimal() + 
+  theme(
+    panel.grid = element_blank(), # Remove grid
+    axis.title = element_text(size = 14), # Axis labels size
+    axis.text = element_text(size = 12), # Axis text size
+    axis.line = element_line() # Add axis lines
+  )
+
+```
+
+
+
+K means clustering. 
+```{r}
+# Assume exprs(gse) is your gene expression matrix
+data <- t(exprs(gse))  # Transpose the matrix to have samples as rows and genes as columns
+
+# Scale the data (optional but recommended)
+data_scaled <- scale(data)
+```
+
+```{r}
+wss <- sapply(1:10, function(k) {
+  kmeans(data_scaled, centers = k, nstart = 25)$tot.withinss
+})
+
+elbow_plot <- data.frame(Clusters = 1:10, WSS = wss)
+ggplot(elbow_plot, aes(x = Clusters, y = WSS)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Elbow Method", x = "Number of Clusters", y = "Total Within-Cluster Sum of Squares")
+
+```
+will chose 3 clusters 
+```{r}
+set.seed(123)  # For reproducibility
+k <- 3  # Replace with your chosen number of clusters
+kmeans_result <- kmeans(data_scaled, centers = 2, nstart = 25)
+
+```
+
+```{r}
+# Add cluster assignments to your PCA data
+pca_result <- prcomp(data_scaled)
+pca_data <- data.frame(pca_result$x[, 1:2], Cluster = factor(kmeans_result$cluster))
+
+# Plot the clusters
+ggplot(pca_data, aes(x = PC1, y = PC2, color = Cluster)) +
+  geom_point(size = 3) +
+  labs(title = "K-Means Clustering on PCA",
+       x = "PC1", y = "PC2", color = "Cluster") +
+  theme_minimal()
+
+```
+see onenote for explanation about the cluster analysis. 
+

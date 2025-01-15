@@ -1,0 +1,130 @@
+---
+title: "Asseddment_2_class_method_t_test"
+output: html_document
+date: "2025-01-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_knit$set(root.dir = "C:/Users/chris/OneDrive - University of Leeds/Modules/BIOL5327M Anlytl Skills in Precision Med (39553)/Assessment 2/Raw Data")
+```
+
+```{r}
+getwd()
+```
+
+```{r}
+.libPaths(c("C:/Rpackages", .libPaths()))
+```
+
+```{r}
+library(limma)
+```
+
+```{r}
+library(affy)
+library(hgu133acdf)
+```
+
+```{r}
+batch = read.affybatch(dir(patt="CEL"))
+clinical = read.csv("Experiment_info_uncleaned_2.csv", header=T)
+```
+```{r}
+norm.batch = rma(batch)
+```
+```{r}
+dat = exprs(norm.batch)
+```
+
+```{r}
+# Extract column names from dat
+matrix_columns <- colnames(dat)
+
+# Extract the Array.Data.File column from clinical
+clinical_rows <- clinical$Array.Data.File
+
+# Check if they match
+all(matrix_columns == clinical_rows)  # Should return TRUE if matched
+
+```
+
+Performing t-test
+```{r}
+t2 = vector() # vector of t-statistics
+# Don’t use t for object name
+pval.t2 = vector() # vector of p-values
+group = clinical$group # group labels
+#iteration
+for(j in 1:nrow(dat)){
+temp = dat[j,]
+res=t.test(temp[group==1], temp[group==0], var.equal=T)
+t2[j] = res$stat
+pval.t2[j]=res$p.val
+}
+```
+
+Multiplicity adjustment
+```{r}
+adj.pval.t2 <- p.adjust(pval.t2, "BH")
+```
+
+Result table
+```{r}
+result.table2 = data.frame(ID=rownames(dat), t.stat=t2,
+pvalue=pval.t2, fdr.pvalue=adj.pval.t2)
+result.table2.sorted = result.table2[order(adj.pval.t2),]
+result.table2.sorted[1:10,] # listing the top 10 genes
+```
+got the list of differentially expressed genes. Just got to do loads with them. FUN. Whoop. THis could be bad. Need to post this list in the report. 
+
+code to install package:
+**if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("hgu133a.db")**
+
+```{r}
+library(hgu133a.db)
+```
+
+```{r}
+library(AnnotationDbi)
+```
+
+```{r}
+gene_ids <- result.table2.sorted$ID
+```
+
+```{r}
+mapped_genes <- select(hgu133a.db, 
+                       keys = gene_ids, 
+                       columns = c("SYMBOL", "GENENAME"), 
+                       keytype = "PROBEID")
+```
+
+```{r}
+result_with_genes <- merge(result.table2.sorted, mapped_genes, 
+                           by.x = "ID", 
+                           by.y = "PROBEID", 
+                           all.x = TRUE)
+```
+
+```{r}
+head(result_with_genes)
+```
+```{r}
+sorted_results <- result_with_genes[order(result_with_genes$fdr.pvalue), ]
+```
+
+```{r}
+top_results <- head(sorted_results, 100)
+print(top_results)
+```
+This output is looking at ages over 25...Do I want to do under 25? Need to make sure I do the same analysis with limma though. It doesn't matter if looking at diferent group just flip the negative sign.
+
+```{r}
+install.packages("writexl")
+
+```
+
+
+
