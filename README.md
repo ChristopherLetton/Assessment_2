@@ -2,7 +2,7 @@
 This repository contains the work for the second assignment of the BIOL5327M Analytical Skills in Precision Medicine module. The objective of this assignment is to analyse a microarray dataset and report the findings.
 
 ## Dataset
-I used the Lyphona microarray data for this analysis. The dataset was preprocessed and normalised to ensure data quality and reliability. The analysis included the following key steps:
+I used the lymphoma microarray data for this analysis. The dataset was preprocessed and normalised to ensure data quality and reliability. The analysis included the following key steps:
 
 T-Test: A standard t-test was performed to identify differentially expressed genes.
 Limma Analysis: The Limma (Linear Models for Microarray Data) package in R was utilised for a more robust identification of significant genes.
