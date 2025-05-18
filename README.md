@@ -7,6 +7,7 @@ git clone https://github.com/ChristopherLetton/Assessment_2.git
 cd Assessment_2
 Rscript setup.R                     # installs any missing packages
 R -e "rmarkdown::render('analysis/assessment_2.Rmd')"
+'''
 
 ## Dataset
 I used the lymphoma microarray data for this analysis. The dataset was preprocessed and normalised to ensure data quality and reliability. The analysis included the following key steps:
