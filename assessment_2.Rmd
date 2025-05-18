@@ -8,29 +8,11 @@ date: "2024-12-16"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Installing packages
-
-install.packages("BiocManager")
-install.packages("forcats")
-install.packages("stringr")
-install.packages("ggplot2")
-install.packages("ggrepel")
-install.packages("readr")
-install.packages("tidyr")
-install.packages("survminer")
-BiocManager::install("GEOquery")
-BiocManager::install("limma")
-BiocManager::install("pheatmap")
-BiocManager::install("org.Hs.eg.db")a
-
-already installed so should run now ^^^
-
-
-Testing first using the practical information to conduct the work. 
-```{r}
-
+```{r libraries, message=FALSE, warning=FALSE}
+library(forcats); library(stringr); library(ggplot2); library(ggrepel)
+library(readr);   library(tidyr);   library(survminer)
+library(GEOquery); library(limma);  library(pheatmap); library(org.Hs.eg.db)
 ```
-
 
 ```{r}
 getwd()
