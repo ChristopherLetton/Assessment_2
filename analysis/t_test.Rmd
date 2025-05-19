@@ -119,7 +119,6 @@ sorted_results <- result_with_genes[order(result_with_genes$fdr.pvalue), ]
 top_results <- head(sorted_results, 100)
 print(top_results)
 ```
-This output is looking at ages over 25...Do I want to do under 25? Need to make sure I do the same analysis with limma though. It doesn't matter if looking at diferent group just flip the negative sign.
 
 ```{r}
 install.packages("writexl")
