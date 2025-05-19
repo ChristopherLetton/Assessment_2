@@ -6,7 +6,7 @@ This repository contains the work for the second assignment of the BIOL5327M Ana
 git clone https://github.com/ChristopherLetton/Assessment_2.git
 cd Assessment_2
 Rscript Setup.R                     # installs any missing packages
-R -e "rmarkdown::render('analysis/assessment_2.Rmd')"
+R -e "rmarkdown::render('analysis/limma_analysis.Rmd')"
 ```
 ### Cloning (requires Git LFS)
 
