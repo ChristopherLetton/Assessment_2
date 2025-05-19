@@ -16,23 +16,21 @@ library(GEOquery); library(limma);  library(pheatmap); library(org.Hs.eg.db); li
 
 set the first object in the list and gse now is an expressionSet.
 ```{r}
-###https://sbc.shef.ac.uk/geo_tutorial/tutorial.nb.html#Introduction
-#----import the data------------------------------------
 library(GEOquery)
 my_id <- "GSE22470"
 gse <- getGEO(my_id)
 ```
 
-Shows that the all data was taken from the same platform. You can see that it contains assayData, phenoData, feature etc.
+Shows that all the data was taken from the same platform. You can see that it contains assayData, phenoData, feature etc.
 ```{r}
-## check how many platforms used
+## check how many platforms are used
 length(gse)
 gse <-gse[[1]]
 gse
 
-# careful re-runing this code multple times. It will keep reassigning at raking 1 column from the data!
+# careful re-runing this code multiple times. It will keep reassigning at ranking 1 column from the data!
 ```
-Look at the sample information, gene annotation, and the expression data. This allow us to have a rough idea of the information storing in this expressionSet.
+Look at the sample information, gene annotation, and the expression data. This allow us to have a rough idea of the information stored in this expressionSet.
 
 ```{r}
 pData(gse)[1:400,] ## print the sample information
@@ -55,14 +53,14 @@ pData(gse)$data_processing[1]
 
 The scale of the data seems suitable.
 ```{r}
-## have a look on the expression value
+# have a look at the expression value
 # For visualisation and statistical analysis, we will inspect the data to 
 # discover what scale the data are presented in. The methods we will use assume 
 # the data are on a log2 scale; typically in the range of 0 to 16.
 summary(exprs(gse))
 
 ```
-Check I do in fact have the mean, 3rd quatrile and max values.I do. Can continue. 
+Check I do have the mean, 3rd quartile and max values. I do. Can continue. 
 ```{r}
 selected_samples <- exprs(gse)[, 1:15]
 summary(selected_samples)
@@ -72,7 +70,7 @@ Shows that all the samples have values in the range of 0 and 16. Check the summa
 ```{r}
 boxplot(exprs(gse),outline=F)
 ```
-INSPECT THE CLIJICAL VARIABLES
+INSPECT THE CLINICAL VARIABLES
 ```{r}
 library(dplyr)
 ```
@@ -84,7 +82,7 @@ head(sampleInfo)
 ```{r}
 table(sampleInfo$characteristics_ch1.1)
 ```
-Going to try and see if the tumour type shows some separation (A main priciple component)
+Going to try and see if the tumour type shows some separation (A main principal component)
 ```{r}
 sampleInfo2 <- pData(gse)
 table(sampleInfo2$characteristics_ch1.2)
@@ -100,7 +98,7 @@ sampleInfo <- rename(sampleInfo, group = characteristics_ch1.1)
 
 head(sampleInfo)
 ```
-2
+
 ```{r}
 # Pick just those columns that seem to contain factors we might 
 # need for the analysis.
@@ -115,7 +113,6 @@ head(sampleInfo2)
 
 ```{r}
 dim(sampleInfo)
-
 ```
 ```{r}
 sampleInfo$group
@@ -160,7 +157,7 @@ print(sampleInfo2)
 
 
 
-Sample clustering and Principal Components Analaysis
+Sample clustering and Principal Components Analysis
 
 ```{r}
 library(pheatmap)
@@ -190,7 +187,6 @@ pca <- prcomp(t(exprs(gse)))
 cbind(sampleInfo, pca$x) %>% 
   ggplot(aes(x = PC1, y=PC2, col=group, label=paste("",group))) + geom_point() + geom_text_repel()
 ```
-Not sure what this is actually showing...The PCA is done on age (0,1) not sur ehat the PCA compents are. 
 
 ```{r}
 # Perform PCA
@@ -201,36 +197,17 @@ cbind(sampleInfo, pca$x) %>%
   # Convert 'group' to a factor (if not already)
   mutate(group = factor(group, levels = c(0, 1))) %>%
   ggplot(aes(x = PC1, y = PC2, col = group)) +
-  geom_point(size = 3) +                # Adjust point size for better visibility
+  geom_point(size = 3) +               
   scale_color_manual(
-    values = c("0" = "black", "1" = "blue"),  # Define colors for 0 and 1
-    name = "Ages",                         # Legend title
-    labels = c("0" = "≤25", "1" = ">25")  # Legend labels
+    values = c("0" = "black", "1" = "blue"),  
+    name = "Ages",                         
+    labels = c("0" = "≤25", "1" = ">25")  
   ) +
-  theme_minimal() +                         # Use a clean theme
-  theme(legend.position = "right")          # Place the legend on the side
-
-```
-```{r}
-# Perform PCA
-pca <- prcomp(t(exprs(gse)))
-
-# Join the PCs to the sample information and create the PCA plot
-cbind(sampleInfo, pca$x) %>%
-  # Convert 'group' to a factor (if not already)
-  mutate(group = factor(group, levels = c(0, 1))) %>%
-  ggplot(aes(x = PC1, y = PC2, col = group)) +
-  geom_point(size = 3) +                # Adjust point size for better visibility
-  scale_color_manual(
-    values = c("0" = "black", "1" = "blue"),  # Define colors for 0 and 1
-    name = "Ages",                         # Legend title
-    labels = c("0" = "≤25", "1" = ">25")  # Legend labels
-  ) +
-  theme_minimal() +                         # Use a clean theme
+  theme_minimal() +                       
   theme(
-    legend.position = "right",             # Place the legend on the side
-    panel.grid = element_blank(),          # Remove all grid lines
-    axis.line = element_line(color = "black")  # Keep axis lines visible
+    legend.position = "right",            
+    panel.grid = element_blank(),         
+    axis.line = element_line(color = "black")  
   )
 
 ```
@@ -238,7 +215,7 @@ cbind(sampleInfo, pca$x) %>%
 
 It's just showing the main source of variation within my data set. There does not seem to be clear seaparion based on the age groups that I chose. For example, if gene expression patterns or another feature vary significantly between young and old individuals, PC1 could reflect this. For example, PC2 could highlight variations that might be due to other factors like environmental influences, biological variability, or specific characteristics within the young or old groups.
 
-When investigatin git's worth noting that ages may not be the culprit for the differential expression it could be due to something else. Going forward with the diferential expression seen betwe nthe 2 groups though. 
+When investigating, it's worth noting that ages may not be the culprit for the differential expression; it could be due to something else. Going forward with the differential expression seen between the 2 groups though. 
 
 ```{r}
 # Perform PCA
@@ -319,16 +296,6 @@ cbind(sampleInfo2, pca$x) %>%
 ```
 
 
-
-
-
-
-
-
-
-
-
-
 Differential expression analysis
 
 ```{r}
@@ -336,7 +303,7 @@ library(limma)
 ```
 
 ```{r}
-# Here, we assume 'group' is a factor with two levels: 0 (young) and 1 (old)
+#'group' is a factor with two levels: 0 (young) and 1 (old)
 sampleInfo$group <- factor(sampleInfo$group, levels = c(0, 1))  # Ensure group is a factor
 ```
 
@@ -398,7 +365,7 @@ fit2 <- eBayes(fit2)
 topTable(fit2)
 ```
 
-Tell how many are significant. Only dow nreg in old. Which means we actuallu have 15 upregulated in young. All others aren't siginicant. Should be able to look at these and see affects and suggest papers.
+Tell how many are significant. Only down reg in old. Which means we actually have 15 upregulated in young. All others aren't significant. Should be able to look at these and see effects and suggest papers.
 ```{r}
 topTable1 <- topTable(fit2, coef=1)
 
@@ -406,7 +373,7 @@ topTable1 <- topTable(fit2, coef=1)
 summary(decideTests(fit2))
 ```
 
-Further visualization with gene annotation
+Further visualisation with gene annotation
 ```{r}
 anno <- fData(gse)
 head(anno)
@@ -479,10 +446,10 @@ full_results1 %>%
        y = "B Statistic") +
   theme_minimal() + 
   theme(
-    panel.grid = element_blank(), # Remove grid
-    axis.title = element_text(size = 14), # Axis labels size
-    axis.text = element_text(size = 12), # Axis text size
-    axis.line = element_line() # Add axis lines
+    panel.grid = element_blank(),
+    axis.title = element_text(size = 14), 
+    axis.text = element_text(size = 12), 
+    axis.line = element_line() 
   )
 
 ```
@@ -494,7 +461,7 @@ K means clustering.
 # Assume exprs(gse) is your gene expression matrix
 data <- t(exprs(gse))  # Transpose the matrix to have samples as rows and genes as columns
 
-# Scale the data (optional but recommended)
+# Scale the data
 data_scaled <- scale(data)
 ```
 
@@ -531,5 +498,4 @@ ggplot(pca_data, aes(x = PC1, y = PC2, color = Cluster)) +
   theme_minimal()
 
 ```
-see onenote for explanation about the cluster analysis. 
 
