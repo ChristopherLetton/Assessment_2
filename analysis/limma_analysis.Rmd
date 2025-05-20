@@ -10,7 +10,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 ```{r libraries, message=FALSE, warning=FALSE}
-.libPaths("~/Rlibs")
 library(forcats); library(stringr); library(ggplot2); library(ggrepel)
 library(readr);   library(tidyr);   library(survminer)
 library(GEOquery); library(limma);  library(pheatmap); library(org.Hs.eg.db); library(here)
