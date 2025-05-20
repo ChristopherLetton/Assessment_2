@@ -3,7 +3,8 @@
 
 cran_pkgs <- c(
   "forcats", "stringr", "ggplot2", "ggrepel",
-  "readr", "tidyr", "survminer"
+  "readr", "tidyr", "survminer",
+  "here",   "rmarkdown", "knitr"
 )
 
 bio_pkgs  <- c(
